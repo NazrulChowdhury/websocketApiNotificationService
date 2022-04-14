@@ -1,16 +1,26 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { Stack, StackProps } from 'aws-cdk-lib'
+import { Construct } from 'constructs'
+//import * as apigwv2 from '@aws-cdk/aws-apigatewayv2-alpha'
+import {WebSocketApi} from '@aws-cdk/aws-apigatewayv2-alpha'
 
-export class NotificationServiceStack extends Stack {
+export class NotificationServiceStack extends Stack { 
+
+ // const websocketapi = new WebSocketApi(this, 'notificationSocketApi',{})
+ // const webSocketApi = new WebSocketApi(this, 'TodosWebsocketApi', { 
+//   connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
+//   disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnetHandler }) },
+// });
+
+// const apiStage = new WebSocketStage(this, 'DevStage', {
+//   webSocketApi,
+//   stageName: 'dev',
+//   autoDeploy: true,
+// });
+  private webSocketApi = new WebSocketApi(this, 'notificationSocketApi', {})
+
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-
-    // The code that defines your stack goes here
-
-    // example resource
-    // const queue = new sqs.Queue(this, 'NotificationServiceQueue', {
-    //   visibilityTimeout: cdk.Duration.seconds(300)
-    // });
   }
+ //const webSocketApi = new WebSocketApi(this, 'webSocketApi',{})
+
 }
