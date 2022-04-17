@@ -1,16 +1,19 @@
 import { Stack } from "aws-cdk-lib"
-import { LambdaIntegration } from "aws-cdk-lib/aws-apigateway"
+import { WebSocketLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
 import { AttributeType, Table } from "aws-cdk-lib/aws-dynamodb"
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs"
 import { join } from "path"
-
+import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam"
+//import {WebSocketApi} from '@aws-cdk/aws-apigatewayv2-alpha'
 export interface TableProps {
     tableName : string,
     primaryKey : string,
     connectLambdaPath ?: string,
     disconnectLambdaPath ?: string,
     onMessageLambdaPath ?: string
+    defaultLambdaPath ?: string
 }
+
 export class GenericTable {
     private stack : Stack
     private table : Table
@@ -18,9 +21,11 @@ export class GenericTable {
     private connectLambda : NodejsFunction | undefined
     private disconnectLambda : NodejsFunction | undefined
     private onMessageLambda : NodejsFunction | undefined
-    public connectLambdaIntegration : LambdaIntegration
-    public disconnectLambdaIntegration : LambdaIntegration
-    public onMessageLambdaIntegration : LambdaIntegration
+    private defaultLambda : NodejsFunction | undefined
+    public connectLambdaIntegration : WebSocketLambdaIntegration
+    public disconnectLambdaIntegration : WebSocketLambdaIntegration
+    public onMessageLambdaIntegration : WebSocketLambdaIntegration
+    public defaultLambdaIntegration : WebSocketLambdaIntegration
 
     public constructor(stack : Stack, props : TableProps){
         this.stack = stack,
@@ -53,17 +58,33 @@ export class GenericTable {
         })
     }
     private createLambdas(){
-        if(this.props.connectLambdaPath){
+        if(this.props.connectLambdaPath){ 
             this.connectLambda = this.createNewLambda(this.props.connectLambdaPath)
-            this.connectLambdaIntegration = new LambdaIntegration(this.connectLambda)
+            this.connectLambdaIntegration = new WebSocketLambdaIntegration(
+                'connectLambdaIntegration',
+                this.connectLambda
+            )
         }
         if(this.props.disconnectLambdaPath) {
             this.disconnectLambda = this.createNewLambda(this.props.disconnectLambdaPath)
-            this.disconnectLambdaIntegration = new LambdaIntegration(this.disconnectLambda)
+            this.disconnectLambdaIntegration = new WebSocketLambdaIntegration(
+                'disconnectLambdaIntegration',
+                this.disconnectLambda
+            )
         }
         if(this.props.onMessageLambdaPath){
             this.onMessageLambda = this.createNewLambda(this.props.onMessageLambdaPath)
-            this.onMessageLambdaIntegration = new LambdaIntegration(this.onMessageLambda)
+            this.onMessageLambdaIntegration = new WebSocketLambdaIntegration(
+                'onMessageLambdaIntegration',
+                this.onMessageLambda
+            )
+        }
+        if(this.props.defaultLambdaPath){
+            this.defaultLambda = this.createNewLambda(this.props.defaultLambdaPath)
+            this.connectLambdaIntegration = new WebSocketLambdaIntegration(
+                'connectLambdaIntegration',
+                this.defaultLambda
+            )
         }
     }
     private grantTableRights (){
@@ -76,5 +97,14 @@ export class GenericTable {
         if(this.onMessageLambda){
             this.table.grantReadWriteData(this.onMessageLambda)
         }
+    }
+    public onMessageLambdaAddPolicy(actions : string, connectionsArns :string ){
+        this.onMessageLambda?.addToRolePolicy(
+            new PolicyStatement({
+                effect: Effect.ALLOW,
+                actions : [actions],
+                resources : [connectionsArns]
+            })
+        )
     }
 }

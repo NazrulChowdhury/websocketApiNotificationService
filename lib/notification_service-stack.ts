@@ -1,26 +1,55 @@
 import { Stack, StackProps } from 'aws-cdk-lib'
 import { Construct } from 'constructs'
-//import * as apigwv2 from '@aws-cdk/aws-apigatewayv2-alpha'
-import {WebSocketApi} from '@aws-cdk/aws-apigatewayv2-alpha'
+import {WebSocketApi, WebSocketStage} from '@aws-cdk/aws-apigatewayv2-alpha'
+import { GenericTable } from './GenericTable'
 
 export class NotificationServiceStack extends Stack { 
 
- // const websocketapi = new WebSocketApi(this, 'notificationSocketApi',{})
- // const webSocketApi = new WebSocketApi(this, 'TodosWebsocketApi', { 
-//   connectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: connectHandler }) },
-//   disconnectRouteOptions: { integration: new LambdaWebSocketIntegration({ handler: disconnetHandler }) },
-// });
-
-// const apiStage = new WebSocketStage(this, 'DevStage', {
-//   webSocketApi,
-//   stageName: 'dev',
-//   autoDeploy: true,
-// });
-  private webSocketApi = new WebSocketApi(this, 'notificationSocketApi', {})
+  private table = new GenericTable(this,{
+    tableName : 'userTable',
+    primaryKey : 'connectionId',
+    connectLambdaPath : 'connect',
+    disconnectLambdaPath : 'disconnect',
+    onMessageLambdaPath : 'onMessage',
+    defaultLambdaPath : 'default'
+  })
+  private webSocketApi = new WebSocketApi(this, 'notificationSocketApi', {
+    apiName : 'notificationSocketApi',
+    connectRouteOptions : {
+      integration : this.table.connectLambdaIntegration
+    },
+    disconnectRouteOptions : {
+      integration : this.table.disconnectLambdaIntegration
+    },
+    defaultRouteOptions : {
+      integration : this.table.defaultLambdaIntegration
+    },
+     
+  })
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+      // add custom route
+    this.webSocketApi.addRoute('onMessage',{
+      integration : this.table.onMessageLambdaIntegration
+    })
+    // add stage
+    const webSocketApi = this.webSocketApi
+    const stage = new WebSocketStage(this, 'WebsocketStage', {
+      webSocketApi,
+      autoDeploy : true,
+      stageName: 'dev',
+    })
+    const connectionsArns = this.formatArn({
+      service: 'execute-api',
+      resourceName: `${stage.stageName}/POST/*`,
+      resource: this.webSocketApi.apiId,
+    })
+    // ConnectionManagement On ApiGateway policy. 
+    //permission is needed to post messages to connected WebSocket clients.
+    this.table.onMessageLambdaAddPolicy('execute-api:ManageConnections', connectionsArns) 
+    
   }
- //const webSocketApi = new WebSocketApi(this, 'webSocketApi',{})
+
 
 }
