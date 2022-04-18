@@ -53,7 +53,8 @@ export class GenericTable {
             functionName : lambdaName,
             environment : {
                 PRIMARY_KEY : this.props.primaryKey,
-                TABLE_NAME : this.props.tableName
+                TABLE_NAME : this.props.tableName,
+                AWS_REGION :"eu-west-2"
             }
         })
     }

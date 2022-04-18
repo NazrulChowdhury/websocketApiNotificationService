@@ -10,8 +10,8 @@ export class NotificationServiceStack extends Stack {
     primaryKey : 'connectionId',
     connectLambdaPath : 'connect',
     disconnectLambdaPath : 'disconnect',
-    onMessageLambdaPath : 'onMessage',
-    defaultLambdaPath : 'default'
+    // onMessageLambdaPath : 'onMessage',
+    // defaultLambdaPath : 'default'
   })
   private webSocketApi = new WebSocketApi(this, 'notificationSocketApi', {
     apiName : 'notificationSocketApi',
